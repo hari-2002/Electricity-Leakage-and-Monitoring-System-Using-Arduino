@@ -1,0 +1,42 @@
+#include "EmonLib.h"
+#include <EEPROM.h>
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+#define wifiSSID "#####"
+#define wifiPassword "####"
+#define auth "#######################"
+
+EnergyMonitor emon1;
+float voltage, amps, power, kWh;
+const int calibration = 12.216; // Calibration factor for ZMPT101B
+
+void setup()
+{
+Serial.begin(9600);
+emon1.current(39, 5.5); // Connect SCT013 to GPIO 39, and set calibration factor
+emon1.voltage(36, 230.0, 1.0); // Connect ZMPT101B to GPIO 36
+WiFi.begin(wifiSSID, wifiPassword);
+while (WiFi.status() != WL_CONNECTED) {
+delay(1000);
+Serial.println("Connecting to WiFi...");
+}
+Blynk.begin(auth, WiFi.SSID().c_str(), WiFi.psk().c_str());
+}
+
+void loop()
+{
+Blynk.run();
+emon1.calcVI(20, 2000); // Calculate voltage, current, power and kWh
+voltage = emon1.Vrms;
+amps = 5.5;
+power = voltage * amps;
+kWh = power/3600;
+Blynk.virtualWrite(V0, voltage);
+Blynk.virtualWrite(V1, amps);
+Blynk.virtualWrite(V2, power);
+Blynk.virtualWrite(V4, kWh);
+delay(2000);
+}
